@@ -9,4 +9,5 @@ def start_handler(message):
 
 if __name__ == "__main__":
     # запуск бота методом .polling()
+    print("[i] Bot is started...")
     bot.polling(none_stop=True, interval=0)
