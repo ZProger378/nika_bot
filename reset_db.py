@@ -11,3 +11,7 @@ cur.execute("CREATE TABLE users ("
             "rep INT, alias VARCHAR(64)"
             ")"
 )
+cur.execute("CREATE TABLE tttoe ("
+            "id INT, player_one INT, player_two INT, step INT, map VARCHAR(9), winner INT"
+            ")"
+)
