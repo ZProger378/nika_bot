@@ -93,7 +93,7 @@ def callback(call):
             bot.delete_message(chat_id=message.chat.id, message_id=message.message_id)
 
 
-# обработчик команды /start
+# Обработчик команды /start
 @bot.message_handler(commands=['start'])
 def start_handler(message):
     bot.send_message(message.chat.id, f"Привет, {message.chat.first_name}")
@@ -105,6 +105,17 @@ def main_handler(message):
     user = User(message.from_user.id)  # Получаю объект "пользователь"
     if not user.is_exist():  # Если пользователь не существует
         user.create(username=message.from_user.username.lower())  # Добавление пользователя в базу данных
+
+    if message.reply_to_message and message.reply_to_message.from_user.id not in [message.from_user.id, bot.get_me().id]:
+        answers = fuzz_methods.get_reply_text(text)
+        if "!rep" in answers or "+" in text:  # Если выявлено повышение репутации члену группы
+            user_id = message.reply_to_message.from_user.id  # Получение ID члена группы
+            username = bot.get_chat_member(chat_id=message.chat.id, user_id=user_id).user.username  # Получение username
+            user = User(user_id)
+            if not user.is_exist():
+                user.create(username)
+            user.addrep()  # Добавление к репутации
+            bot.reply_to(message, f"Уважение оказано @{username} (+1 к репутации)")
 
     # Если обращаются к боту
     if is_message_to_bot(text) or message.reply_to_message and message.reply_to_message.from_user.id == bot.get_me().id:
@@ -133,6 +144,14 @@ def main_handler(message):
                     else:  # Если имя пользователя не получено
                         bot.reply_to(message, f"Напиши ник, с кем хочешь играть (Типо: @Name)")
                     bot.delete_message(chat_id=message.chat.id, message_id=message.message_id)
+                elif answer == "!userinfo":
+                    user = User(message.from_user.id)
+                    bot.reply_to(message, f"<b>Информация о тебе</b>\n\n"
+                                          f"👤 USERNAME: @{user.username}\n"
+                                          f"🤖 ID: <code>{user.id}</code>\n"
+                                          f"😎 Репутация: <b>{user.rep}</b>\n"
+                                          f"✏️ Кличка: <i>{str(user.alias).replace('None', 'Нет')}</>"
+                                 .replace("@None", "Нет"))
 
 
 if __name__ == "__main__":
