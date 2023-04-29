@@ -11,19 +11,22 @@ from fuzz_methods import is_message_to_bot
 def callback(call):
     message = call.message
     data = call.data
-    if data.startswith("tictactoe_"):
+    if data.startswith("tictactoe_"):  # При нажатии на поле игры
+        # Получение ID игры и нажатого поля
         game_id = int(data.split("_")[1])
         btn_id = int(data.split("_")[-1])
-        game = TTToe(game_id)
+        game = TTToe(game_id)  # Получение данных об игре
+        # Если игрок ходит своей очередью
         if (game.player_one == call.from_user.id and game.step == 1) or (
                 game.player_two == call.from_user.id and game.step == 2) and game.winner == 0:
             _map = game.map
             new_map = ""
+            # Обновление очереди
             if game.step == 1:
                 new_step = 2
             else:
                 new_step = 1
-
+            # Обновление карты
             for i, char in enumerate(_map):
                 if i == btn_id - 1:
                     if char == "0":
@@ -35,15 +38,19 @@ def callback(call):
                         new_map += char
                 else:
                     new_map += char
+
+            # Применение изменений
             game.edit_map(new_map)
             game.edit_step(new_step)
 
+            # Перезапись полей в формат {X;Y}
             map_dic = {}
             btn_id = 0
             for y in range(3):
                 for x in range(3):
                     map_dic[f"{x+1}{y+1}"] = game.map[btn_id]
                     btn_id += 1
+            # Получение позиций занятых определённым игроком
             player_one_pos = []
             player_two_pos = []
             for xy in map_dic.keys():
@@ -51,6 +58,7 @@ def callback(call):
                     player_one_pos.append(xy)
                 elif map_dic[xy] == "2":
                     player_two_pos.append(xy)
+            # Все возможные позиция для выйгрыша
             winner_positions = [
                 ["11", "12", "13"],
                 ["21", "22", "23"],
@@ -62,26 +70,26 @@ def callback(call):
                 ["31", "22", "13"]
             ]
             winner = 0
-            for pos in winner_positions:
+            for pos in winner_positions:  # Перебор выйгрышных позиций и проверка на их присутствие
                 if pos[0] in player_one_pos and pos[1] in player_one_pos and pos[2] in player_one_pos:
-                    winner = 1
+                    winner = 1  # Побеждает 1 игрок
                     break
                 elif pos[0] in player_two_pos and pos[1] in player_two_pos and pos[2] in player_two_pos:
-                    winner = 2
+                    winner = 2  # Побеждает 2 игрок
                     break
 
-            if winner == 0:
+            if winner == 0:  # Если никто не победил = игра продолжнается
                 user = User([game.player_one, game.player_two][new_step - 1])
                 bot.edit_message_text(chat_id=message.chat.id, message_id=message.message_id,
                                       text=f"Ход @{user.username}",
                                       reply_markup=tttoe_markup(game.id))
-            else:
+            else:  # Иначе = конец игры
                 game.edit_winner(winner)
                 user = User([game.player_one, game.player_two][winner - 1])
                 bot.edit_message_text(chat_id=message.chat.id, message_id=message.message_id,
                                       text=f"@{user.username} - победил!",
                                       reply_markup=tttoe_markup(game.id))
-        elif game.winner != 0:
+        elif game.winner != 0:  # Если игра окончена = удаление сообщения
             bot.delete_message(chat_id=message.chat.id, message_id=message.message_id)
 
 
