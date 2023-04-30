@@ -39,6 +39,13 @@ class User:
         cur.execute("UPDATE users SET rep = rep + 1 WHERE user_id = ?", (self.id,))
         con.commit()
 
+    # Метод для получения клички
+    def new_alias(self, alias):
+        con = sqlite3.connect("main_db.db")
+        cur = con.cursor()
+        cur.execute("UPDATE users SET alias = ? WHERE user_id = ?", (alias, self.id))
+        con.commit()
+
     # Метод для внесения правок в бд
     def edit(self, column, new_value):
         con = sqlite3.connect("main_db.db")
