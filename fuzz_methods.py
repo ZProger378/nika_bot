@@ -23,7 +23,7 @@ def ratio(text, identity):
     b = fuzz.WRatio(text, identity)
     c = fuzz.token_set_ratio(text, identity)
     # Получаю среднее арифметическое с3 2 результатов
-    res = round((2 * a + b + c) / 4)
+    res = round((a + b + c) / 3)
 
     return res  # Возвращаю результат
 
@@ -59,6 +59,8 @@ def get_reply_text(text):
     # Нахожу наибольшее совпадение
     if text in names:  # Если сообщение представляет собой просто обращение к боту
         questions = [["!call_bot", 100]]
+    elif text.split(" ")[0] in ["что", "когда", "кто"]:
+        questions = [["!wikisearch", 100]]
     else:  # Иначе
         questions = [["!notunderstandme", 100]]
         for comparison in comparisons:

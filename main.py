@@ -1,16 +1,21 @@
-import json
+###################################
+# Импортирование ебучих библиотек #
+###################################
 
+import json
+import wiki
 import config
 import fuzz_methods
 from config import bot
 from random import randint
 from database import User, TTToe
-from TicTacToe.markups import main_markup as tttoe_markup
 from fuzz_methods import is_message_to_bot
+from TicTacToe.markups import main_markup as tttoe_markup
 
 
 @bot.callback_query_handler(func=lambda call: True)
 def callback(call):
+    # Сокращение названий переменных для удобства
     message = call.message
     data = call.data
     if data.startswith("tictactoe_"):  # При нажатии на поле игры
@@ -95,6 +100,10 @@ def start_handler(message):
 
 @bot.message_handler(chat_types=["group", "supergroup"])
 def main_handler(message):
+    #######################
+    # Основной обработчик #
+    #######################
+
     text = message.text.lower()  # Преобразуем текст в lowercase
     user = User(message.from_user.id)  # Получаю объект "пользователь"
     if not user.is_exist():  # Если пользователь не существует
@@ -135,6 +144,7 @@ def main_handler(message):
             text_list = text.split(" ")
             text_list[0] = ""
             text = " ".join(text_list)
+        text = text.strip()
         answers = fuzz_methods.get_reply_text(text)  # Получаю ответ на команды
         # Отправка сообщений
         for i, answer in enumerate(answers):
@@ -147,6 +157,10 @@ def main_handler(message):
                 else:
                     bot.send_message(message.chat.id, answer)
             else:
+                #####################
+                # Обработчик команд #
+                #####################
+
                 if answer == "!tictactoe":  # Запуск игры в крестики-нолики
                     # Получение имени 2-го игрока
                     username = None
@@ -171,22 +185,48 @@ def main_handler(message):
                                           f"😎 Репутация: <b>{user.rep}</b>\n"
                                           f"✏️ Кличка: <i>{str(user.alias).replace('None', 'Нет')}</>"
                                  .replace("@None", "Нет"))
-                elif answer == "!wikisearch":
-                    when = text.find("когда")
-                    whatis = text.find("что такое")
-                    what = text.find("что")
-                    prompt = ""
-                    results = []
-                    for question in [when, whatis, what]:
-                        if question != -1:
-                            for x in range(question, len(text)):
-                                prompt += text[x]
-                            result = config.search(prompt, 1)
-                            results.append(result)
-                            if result is not None:
-                                bot.reply_to(message, f"По запросу \"<i>{prompt}</i>\":\n<b>{result}</b>")
-                                break
-                            prompt = ""
+                elif answer == "!wikisearch":  # Поиск по WikiPedia
+                    # Нахожу ключевые слова
+                    key_words = [text.find("когда"), text.find("что"), text.find("кто")]
+
+                    prompt = ""  # Запрос
+                    result = []  # Результат
+
+                    # Составляю запрос на основе ключевых слов
+                    if sum(key_words) != -3:
+                        for question in key_words:
+                            if question != -1:  # Если ключевое слово найдено
+                                # Составляю запрос
+                                for x in range(question, len(text)):
+                                    prompt += text[x]
+                                # Делаю запрос в википедию
+                                result = wiki.search(prompt)
+                                if result is not None:  # Если страница найдена
+                                    # Вывожу результат поиска в чат
+                                    bot.reply_to(message, f"По запросу \"<i>{prompt}</i>\":")
+                                    # Перебор и вывод результата
+                                    for x, message_text in enumerate(result):
+                                        bot.send_message(message.chat.id, f"<b>{message_text}</b>")
+                                    bot.send_message(message.chat.id, f"<i>Источник: <b>WikiPedia</b></i>")
+
+                                    # Выход из цикла
+                                    break
+                                prompt = ""  # Очистка запроса
+
+                    # Если не получилось составить запрос
+                    if not result or sum(key_words) == -3:
+                        prompt = text  # Запросом будет являться всё сообщение
+                        result = wiki.search(prompt)  # Запрос в википедию
+                        if result is not None:  # Если результат не равен None
+                            # Вывожу результат поиска в чат
+                            bot.reply_to(message, f"По запросу \"<i>{prompt}</i>\":")
+                            # Перебор и вывод результата
+                            for x, message_text in enumerate(result):
+                                bot.send_message(message.chat.id, f"<b>{message_text}</b>")
+                            bot.send_message(message.chat.id, f"<i>Источник: <b>WikiPedia</b></i>")
+                            break  # Выход из цикла
+                    if not result:  # Если ничего не нашёл
+                        bot.reply_to(message, f"По запросу \"<i>{prompt}</i>\" я ничего не нашла(")
 
 
 if __name__ == "__main__":
