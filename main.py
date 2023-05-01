@@ -3,6 +3,8 @@
 ###################################
 
 import json
+import time
+
 import wiki
 import config
 import fuzz_methods
@@ -144,7 +146,7 @@ def main_handler(message):
             text_list = text.split(" ")
             text_list[0] = ""
             text = " ".join(text_list)
-        text = text.strip()
+        text = fuzz_methods.clear(text)
         answers = fuzz_methods.get_reply_text(text)  # Получаю ответ на команды
         # Отправка сообщений
         for i, answer in enumerate(answers):
@@ -189,44 +191,37 @@ def main_handler(message):
                     # Нахожу ключевые слова
                     key_words = [text.find("когда"), text.find("что"), text.find("кто")]
 
-                    prompt = ""  # Запрос
+                    prompts = []  # Запросы
                     result = []  # Результат
 
                     # Составляю запрос на основе ключевых слов
                     if sum(key_words) != -3:
+                        prompt = ""
                         for question in key_words:
                             if question != -1:  # Если ключевое слово найдено
                                 # Составляю запрос
                                 for x in range(question, len(text)):
                                     prompt += text[x]
-                                # Делаю запрос в википедию
-                                result = wiki.search(prompt)
-                                if result is not None:  # Если страница найдена
-                                    # Вывожу результат поиска в чат
-                                    bot.reply_to(message, f"По запросу \"<i>{prompt}</i>\":")
-                                    # Перебор и вывод результата
-                                    for x, message_text in enumerate(result):
-                                        bot.send_message(message.chat.id, f"<b>{message_text}</b>")
-                                    bot.send_message(message.chat.id, f"<i>Источник: <b>WikiPedia</b></i>")
-
-                                    # Выход из цикла
-                                    break
-                                prompt = ""  # Очистка запроса
+                                prompts.append(prompt)
 
                     # Если не получилось составить запрос
-                    if not result or sum(key_words) == -3:
-                        prompt = text  # Запросом будет являться всё сообщение
-                        result = wiki.search(prompt)  # Запрос в википедию
-                        if result is not None:  # Если результат не равен None
+                    if not prompts:
+                        prompts.append(text)  # Запросом будет являться всё сообщение
+
+                    for prompt in prompts:
+                        # Делаю запрос в википедию
+                        result = wiki.search(prompt)
+                        if result is not None:  # Если страница найдена
                             # Вывожу результат поиска в чат
-                            bot.reply_to(message, f"По запросу \"<i>{prompt}</i>\":")
+                            bot.reply_to(message, f"По запросу \"<i>{prompts[0]}</i>\":")
                             # Перебор и вывод результата
                             for x, message_text in enumerate(result):
                                 bot.send_message(message.chat.id, f"<b>{message_text}</b>")
                             bot.send_message(message.chat.id, f"<i>Источник: <b>WikiPedia</b></i>")
-                            break  # Выход из цикла
+                            # Выход из цикла
+                            break
                     if not result:  # Если ничего не нашёл
-                        bot.reply_to(message, f"По запросу \"<i>{prompt}</i>\" я ничего не нашла(")
+                        bot.reply_to(message, f"По запросу \"<i>{prompts[0]}</i>\" я ничего не нашла(")
 
 
 if __name__ == "__main__":
