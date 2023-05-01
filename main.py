@@ -2,16 +2,12 @@
 # Импортирование ебучих библиотек #
 ###################################
 
-import json
-import time
-
 import wiki
-import config
 import fuzz_methods
 from config import bot
 from random import randint
-from database import User, TTToe
 from fuzz_methods import is_message_to_bot
+from database import User, TTToe, Message, Messages
 from TicTacToe.markups import main_markup as tttoe_markup
 
 
@@ -105,6 +101,10 @@ def main_handler(message):
     #######################
     # Основной обработчик #
     #######################
+
+    # Сохранения сообщения в базу данных
+    mes = Message(message=message)
+    mes.write_db()
 
     text = message.text.lower()  # Преобразуем текст в lowercase
     user = User(message.from_user.id)  # Получаю объект "пользователь"
@@ -222,6 +222,17 @@ def main_handler(message):
                             break
                     if not result:  # Если ничего не нашёл
                         bot.reply_to(message, f"По запросу \"<i>{prompts[0]}</i>\" я ничего не нашла(")
+                elif answer == "!top":
+                    messages = Messages()  # Получаю все сообщения
+                    # Переписываю в читабельный вид в виде кортежа
+                    activity = {}
+                    for mes in messages.messages:
+                        if mes.user_id not in activity.keys():
+                            activity[mes.user_id] = 1
+                        else:
+                            activity[mes.user_id] = activity[mes.user_id] + 1
+
+                    bot.send_message(message.chat.id, f"{activity}")
 
 
 if __name__ == "__main__":

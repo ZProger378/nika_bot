@@ -71,7 +71,7 @@ def get_reply_text(text):
     else:  # Иначе
         questions = [["!notunderstandme", 100]]
         for comparison in comparisons:
-            if comparison[1] >= 70:  # Если совпадение более 70%
+            if comparison[1] > 75:  # Если совпадение более 70%
                 # Добавляем распознанную команду в список
                 if questions[0][0] == "!notunderstandme":
                     questions = [comparison]
