@@ -171,3 +171,13 @@ class TTToe:
             return True
         else:
             return False
+
+
+class TTToeGames:
+    def __init__(self):
+        con, cur = connect_db()
+        cur.execute("SELECT * FROM tttoe")
+        unsorted = cur.fetchall()
+        self.games = []
+        for i in unsorted:
+            self.games.append(TTToe(i[0]))

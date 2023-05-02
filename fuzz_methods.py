@@ -33,7 +33,7 @@ def clear(text):
     # Очистка сообщения #
     #####################
     result = text.strip()  # Очистка от "лишних" пробелов
-    extra_chars = "!@#$%^&*()\"'/\\.,?_=`"  # "Лишние" символы, которые не стоит считать
+    extra_chars = "!#$%^&*()\"'/\\.,?_=-`"  # "Лишние" символы, которые не стоит считать
     for char in extra_chars:
         result = result.replace(char, "")  # Очистка текста от "лишних" символов
 
@@ -61,8 +61,9 @@ def get_reply_text(text):
     for rep in dialog:
         reps = rep.split("/")
         for rp in reps:
-            res = ratio(text.lower(), rp)
-            comparisons.append([rep, res])
+            if text:
+                res = ratio(text.lower(), rp)
+                comparisons.append([rep, res])
     # Нахожу наибольшее совпадение
     if text in names:  # Если сообщение представляет собой просто обращение к боту
         questions = [["!call_bot", 100]]

@@ -1,13 +1,14 @@
 ###################################
 # Импортирование ебучих библиотек #
 ###################################
+import json
 
 import wiki
 import fuzz_methods
 from config import bot
 from random import randint
 from fuzz_methods import is_message_to_bot
-from database import User, TTToe, Message, Messages
+from database import User, TTToe, Message, Messages, TTToeGames
 from TicTacToe.markups import main_markup as tttoe_markup
 
 
@@ -143,9 +144,11 @@ def main_handler(message):
     # Если обращаются к боту
     if is_message_to_bot(text) or message.reply_to_message and message.reply_to_message.from_user.id == bot.get_me().id:
         if is_message_to_bot(text):
-            text_list = text.split(" ")
-            text_list[0] = ""
-            text = " ".join(text_list)
+            names = json.load(open("model.json", "rb"))["name"]
+            if text not in names:
+                text_list = text.split(" ")
+                text_list[0] = ""
+                text = " ".join(text_list)
         text = fuzz_methods.clear(text)
         answers = fuzz_methods.get_reply_text(text)  # Получаю ответ на команды
         # Отправка сообщений
@@ -181,10 +184,13 @@ def main_handler(message):
                     bot.delete_message(chat_id=message.chat.id, message_id=message.message_id)
                 elif answer == "!userinfo":  # Получение информации о себе
                     user = User(message.from_user.id)
+                    messages = Messages()
+                    messages = messages.filter_by_id(message.from_user.id)
                     bot.reply_to(message, f"<b>Информация о тебе</b>\n\n"
                                           f"👤 USERNAME: @{user.username}\n"
                                           f"🤖 ID: <code>{user.id}</code>\n"
                                           f"😎 Репутация: <b>{user.rep}</b>\n"
+                                          f"💬 Всего сообщений: <b>{len(messages)}</b>\n"
                                           f"✏️ Кличка: <i>{str(user.alias).replace('None', 'Нет')}</>"
                                  .replace("@None", "Нет"))
                 elif answer == "!wikisearch":  # Поиск по WikiPedia
@@ -223,16 +229,93 @@ def main_handler(message):
                     if not result:  # Если ничего не нашёл
                         bot.reply_to(message, f"По запросу \"<i>{prompts[0]}</i>\" я ничего не нашла(")
                 elif answer == "!top":
+                    #################################################################
+                    # Получение всех сообщений и их перевод в более читабельный вид #
+                    #################################################################
+
                     messages = Messages()  # Получаю все сообщения
                     # Переписываю в читабельный вид в виде кортежа
-                    activity = {}
+                    activity = {}  # {123456789: 5, 987654321: 1}
                     for mes in messages.messages:
                         if mes.user_id not in activity.keys():
                             activity[mes.user_id] = 1
                         else:
                             activity[mes.user_id] = activity[mes.user_id] + 1
 
-                    bot.send_message(message.chat.id, f"{activity}")
+                    ############################
+                    # Сортировка по уменьшению #
+                    ############################
+
+                    statistic = []
+                    last = None
+                    while activity:
+                        for x in range(len(activity.keys())):
+                            if last is None:
+                                last = list(activity.keys())[x]
+                            else:
+                                if activity[last] < activity[list(activity.keys())[x]]:
+                                    last = list(activity.keys())[x]
+                        statistic.append([last, activity[list(activity.keys())[x]]])
+                        activity.pop(last)
+                        last = None
+                    #########################
+                    # Вывод в виде рейтинга #
+                    #########################
+
+                    statistic_text = ""
+                    # Перебор данных
+                    for x, stat in enumerate(statistic):
+                        if x > 19:  # Ограничение в 20 мест рейтинга
+                            break
+                        else:
+                            user = User(stat[0])
+                            statistic_text += f"<b>{x + 1})</b> <i>@{user.username.upper()}</i> - {stat[1]}\n"
+                    bot.send_message(message.chat.id, f"Топ по сообщениям за всё время:\n\n"
+                                                      f"{statistic_text}")
+                elif answer == "!ttoerating":
+                    ###########################################
+                    # Сбор данных и перевод в читабельный вид #
+                    ###########################################
+
+                    games = TTToeGames().games
+                    rating = {}
+                    for game in games:
+                        winner = [game.player_one, game.player_two][game.winner - 1]
+                        if winner not in rating.keys():
+                            rating[winner] = 1
+                        else:
+                            rating[winner] = rating[winner] + 1
+                    ###################################
+                    # Сортировка в порядке уменьшения #
+                    ###################################
+
+                    statistic = []
+                    last = None
+                    while rating:
+                        for x in range(len(rating.keys())):
+                            if last is None:
+                                last = list(rating.keys())[x]
+                            else:
+                                if rating[last] < rating[list(rating.keys())[x]]:
+                                    last = list(rating.keys())[x]
+                        statistic.append([last, rating[last]])
+                        rating.pop(last)
+                        last = None
+
+                    #########################
+                    # Вывод в виде рейтинга #
+                    #########################
+
+                    statistic_text = ""
+                    # Перебор данных
+                    for x, stat in enumerate(statistic):
+                        if x > 19:  # Ограничение в 20 мест рейтинга
+                            break
+                        else:
+                            user = User(stat[0])
+                            statistic_text += f"<b>{x + 1})</b> <i>@{user.username.upper()}</i> - <b>{stat[1]}</b>\n"
+                    bot.send_message(message.chat.id, f"Рейтинг в мини-игре:\n\n"
+                                                      f"{statistic_text}")
 
 
 if __name__ == "__main__":
